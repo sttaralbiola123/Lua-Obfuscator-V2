@@ -1,391 +1,552 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LuaObf — Roblox Script Obfuscator</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
-  <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --bg:#090b0e;
-      --surface:#0f1116;
-      --surface2:#13161d;
-      --border:#1a1e28;
-      --border-hi:#252b3a;
-      --accent:#bf5fff;
-      --accent2:#7c3aed;
-      --glow:rgba(191,95,255,0.15);
-      --green:#47ffb2;
-      --red:#ff4757;
-      --text:#c4c9d4;
-      --text-dim:#5a6070;
-      --mono:'JetBrains Mono',monospace;
-      --display:'Syne',sans-serif;
-    }
-    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px;line-height:1.6;overflow-x:hidden}
-    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:0.02;pointer-events:none;z-index:0}
-    body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.3;pointer-events:none;z-index:0}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sttar's Lua VM Obfuscator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    .wrapper{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 64px}
+        body {
+            background: radial-gradient(circle at 20% 30%, #0b0e1a, #03050a);
+            font-family: 'Fira Code', 'Courier New', 'Segoe UI', monospace;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            color: #e3e6f0;
+        }
 
-    /* Header */
-    header{width:100%;max-width:1000px;margin-bottom:32px;display:flex;align-items:center;gap:14px;animation:fadeDown .5s ease both}
-    .logo-mark{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px var(--glow)}
-    .logo-text .name{font-family:var(--display);font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px}
-    .logo-text .tagline{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
-    .header-pills{margin-left:auto;display:flex;gap:8px}
-    .pill{padding:3px 10px;border:1px solid var(--border-hi);border-radius:20px;font-size:11px;color:var(--text-dim)}
-    .pill.active{border-color:rgba(191,95,255,.4);color:var(--accent);background:rgba(191,95,255,.07)}
+        /* Glow / neon effect */
+        .glow-text {
+            text-shadow: 0 0 8px #00ffaa88, 0 0 2px #00ffaa;
+        }
 
-    /* Main editors */
-    .editors{width:100%;max-width:1000px;display:grid;grid-template-columns:1fr 1fr;gap:12px;animation:fadeUp .5s ease .1s both}
-    @media(max-width:700px){.editors{grid-template-columns:1fr}}
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-    .editor-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-    .editor-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
-    .dots{display:flex;gap:5px}
-    .dot{width:10px;height:10px;border-radius:50%}
-    .dot-r{background:#ff5f57}.dot-y{background:#febc2e}.dot-g{background:#28c840}
-    .editor-label{margin-left:6px;font-size:11px;color:var(--text-dim)}
-    .lang-tag{margin-left:auto;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.05em}
-    .lang-tag.input{background:rgba(71,255,178,.1);border:1px solid rgba(71,255,178,.25);color:var(--green)}
-    .lang-tag.output{background:rgba(191,95,255,.1);border:1px solid rgba(191,95,255,.25);color:var(--accent)}
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #aaffdd, #00ffaa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -1px;
+            filter: drop-shadow(0 0 12px #00ffaa66);
+        }
+        .header p {
+            color: #8a9bb5;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
 
-    .editor-wrap{position:relative;flex:1}
-    .line-nums{position:absolute;top:0;left:0;width:44px;padding:14px 8px 14px 0;text-align:right;font-size:12px;line-height:1.75;color:var(--border-hi);pointer-events:none;user-select:none;border-right:1px solid var(--border)}
-    textarea{display:block;width:100%;min-height:320px;resize:vertical;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.75;padding:14px 14px 14px 58px;caret-color:var(--accent);tab-size:2}
-    textarea::placeholder{color:var(--text-dim)}
-    textarea[readonly]{color:var(--accent);background:rgba(191,95,255,.02)}
+        /* two columns */
+        .obf-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.8rem;
+            margin-bottom: 2rem;
+        }
+        .input-area, .output-area {
+            flex: 1;
+            min-width: 280px;
+            background: #0e101acc;
+            backdrop-filter: blur(4px);
+            border-radius: 2rem;
+            border: 1px solid #2a3a4a;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.5);
+            transition: all 0.2s;
+        }
+        .input-area:hover, .output-area:hover {
+            border-color: #00ffaa88;
+            box-shadow: 0 0 18px rgba(0,255,170,0.2);
+        }
 
-    /* Action bar */
-    .action-bar{width:100%;max-width:1000px;margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:fadeUp .5s ease .2s both}
-    .stats{font-size:11px;color:var(--text-dim)}
-    .stats span{color:var(--text)}
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #1f2a36;
+            background: #05070c70;
+            border-radius: 2rem 2rem 0 0;
+            font-weight: 600;
+        }
+        .panel-header h3 {
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .badge {
+            background: #00ffaa20;
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.7rem;
+            color: #00ffaa;
+            border: 1px solid #00ffaa40;
+        }
 
-    button{cursor:pointer;font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.04em;border:none;border-radius:6px;transition:all .15s ease}
-    .btn-obf{padding:11px 28px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;gap:8px;box-shadow:0 2px 16px var(--glow)}
-    .btn-obf:hover{transform:translateY(-1px);box-shadow:0 4px 24px rgba(191,95,255,.35)}
-    .btn-obf:active{transform:translateY(0)}
-    .btn-obf:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
-    .btn-obf .spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
-    .btn-obf.loading .spinner{display:block}
-    .btn-obf.loading .btn-label{display:none}
+        textarea {
+            width: 100%;
+            height: 420px;
+            background: #03050cee;
+            border: none;
+            color: #ccffdd;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            padding: 1.2rem;
+            resize: vertical;
+            outline: none;
+            border-radius: 0 0 1.5rem 1.5rem;
+            line-height: 1.5;
+        }
+        textarea::placeholder {
+            color: #3f4e66;
+        }
 
-    .btn-copy-out{padding:11px 18px;background:rgba(191,95,255,.1);color:var(--accent);border:1px solid rgba(191,95,255,.25)}
-    .btn-copy-out:hover{background:rgba(191,95,255,.18)}
-    .btn-copy-out.copied{background:rgba(71,255,178,.12);color:var(--green);border-color:rgba(71,255,178,.3)}
+        /* button group */
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0 1.5rem;
+        }
+        .btn {
+            background: #11161f;
+            border: 1px solid #2e4a5e;
+            padding: 0.8rem 2rem;
+            border-radius: 2.5rem;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.25s ease;
+            color: #dbecff;
+            backdrop-filter: blur(5px);
+        }
+        .btn-primary {
+            background: linear-gradient(95deg, #0f2a2a, #05201a);
+            border-color: #00ffaa;
+            color: #b5ffe6;
+            box-shadow: 0 0 6px #00ffaa40;
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.02);
+            background: linear-gradient(95deg, #1b493f, #0b2f28);
+            border-color: #aaffdd;
+            box-shadow: 0 8px 20px #00ffaa30;
+        }
+        .btn-secondary {
+            background: #131e26;
+            border-color: #3a5c72;
+        }
+        .btn-secondary:hover {
+            background: #1d2e3c;
+            transform: translateY(-2px);
+        }
+        .btn-danger {
+            border-color: #ff8866;
+            color: #ffbbaa;
+        }
+        .btn-danger:hover {
+            background: #3a1e1e;
+            transform: translateY(-2px);
+        }
+        .btn:active {
+            transform: translateY(1px);
+        }
 
-    .btn-clear{padding:11px 16px;background:rgba(255,255,255,.04);color:var(--text-dim);border:1px solid var(--border)}
-    .btn-clear:hover{background:rgba(255,255,255,.07);color:var(--text)}
+        /* loading & send animation */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ffaa40;
+            border-top: 2px solid #00ffaa;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-    /* Error */
-    .error-bar{width:100%;max-width:1000px;margin-top:10px;padding:11px 16px;background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.3);border-radius:8px;color:var(--red);font-size:12px;display:none;animation:fadeUp .3s ease both}
-    .error-bar.visible{display:block}
+        .send-animation {
+            animation: pulseSend 0.45s cubic-bezier(0.2, 1.2, 0.8, 1);
+        }
+        @keyframes pulseSend {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.7; background: #00ffaa30; box-shadow: 0 0 18px #0f6; }
+            100% { transform: scale(1); opacity: 1; }
+        }
 
-    /* Stats cards */
-    .stat-row{margin-top:20px;width:100%;max-width:1000px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;animation:fadeUp .5s ease .3s both}
-    @media(max-width:700px){.stat-row{grid-template-columns:1fr 1fr}}
-    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
-    .stat-val{font-family:var(--display);font-size:20px;font-weight:800;color:var(--accent)}
-    .stat-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+        /* result area big style */
+        .result-box {
+            background: #06090fe0;
+            border-radius: 1.8rem;
+            border: 1px solid #2c4a5a;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.9rem 1.5rem;
+            background: #0b1016;
+            border-bottom: 1px solid #1e3342;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .result-header span {
+            font-weight: bold;
+            font-size: 1.1rem;
+            background: #00ffaa20;
+            padding: 0.2rem 1rem;
+            border-radius: 60px;
+        }
+        .copy-group {
+            display: flex;
+            gap: 0.7rem;
+        }
+        .small-btn {
+            background: #121c24;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 40px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            color: #caf0ff;
+        }
+        .small-btn:hover {
+            background: #1d3543;
+            transform: scale(1.02);
+        }
+        .big-output {
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            background: #010101dd;
+            padding: 1.6rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 550px;
+            overflow: auto;
+            color: #c6ffdc;
+            line-height: 1.45;
+        }
 
-    /* Info panels */
-    .info-grid{margin-top:16px;width:100%;max-width:1000px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;animation:fadeUp .5s ease .35s both}
-    @media(max-width:700px){.info-grid{grid-template-columns:1fr}}
-    .info-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
-    .info-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
-    .ihead-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .ic-p{background:rgba(191,95,255,.12);color:var(--accent)}
-    .ic-g{background:rgba(71,255,178,.12);color:var(--green)}
-    .ic-y{background:rgba(232,255,71,.12);color:#e8ff47}
-    .ihead-title{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em}
-    .info-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-    .info-item{font-size:11px;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
-    .info-item::before{content:'›';color:var(--accent);flex-shrink:0}
+        /* credits footer */
+        .credits {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.85rem;
+            background: #01040c70;
+            padding: 1.2rem;
+            border-radius: 2rem;
+            border-top: 1px solid #1e4040;
+            backdrop-filter: blur(4px);
+        }
+        .credits a {
+            color: #88ffcc;
+            text-decoration: none;
+            margin: 0 0.3rem;
+            transition: 0.2s;
+        }
+        .credits a:hover {
+            text-shadow: 0 0 6px #0f6;
+        }
 
-    /* Credits */
-    .credits-panel{margin-top:16px;width:100%;max-width:1000px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;animation:fadeUp .5s ease .4s both}
-    .credits-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
-    .credits-body{padding:14px;display:flex;align-items:center;gap:32px;flex-wrap:wrap}
-    .creator-name{font-family:var(--display);font-size:17px;font-weight:800;color:var(--accent)}
-    .creator-tag{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
-    .credit-links{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
-    .credit-link{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border-hi);border-radius:6px;text-decoration:none;font-size:11px;color:var(--text);transition:all .15s ease}
-    .credit-link:hover{background:rgba(191,95,255,.1);border-color:rgba(191,95,255,.3);color:var(--accent)}
-    .credit-link .cl-label{color:var(--text-dim);font-size:10px;margin-right:2px;text-transform:uppercase}
-
-    footer{margin-top:40px;font-size:11px;color:var(--text-dim);text-align:center;animation:fadeUp .5s ease .45s both}
-
-    @keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes spin{to{transform:rotate(360deg)}}
-  </style>
+        /* status */
+        .status-msg {
+            margin-top: 1rem;
+            text-align: center;
+            font-weight: bold;
+            padding: 0.5rem;
+            background: #0a1220aa;
+            border-radius: 60px;
+            transition: all 0.2s;
+        }
+        .glow {
+            animation: glowPulse 0.9s infinite alternate;
+        }
+        @keyframes glowPulse {
+            0% { text-shadow: 0 0 1px #0f6; }
+            100% { text-shadow: 0 0 10px #0f6; }
+        }
+        @media (max-width: 780px) {
+            body { padding: 1rem; }
+            .btn { padding: 0.5rem 1.2rem; }
+            textarea { height: 280px; }
+        }
+        /* Scroll */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a111c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2e7b62;
+            border-radius: 10px;
+        }
+    </style>
 </head>
 <body>
-<div class="wrapper">
+<div class="container">
+    <div class="header">
+        <h1>✨ Sttar's Lua VM Obfuscator</h1>
+        <p>Military‑grade VM protection | Anti‑reverse engineering | Every compile changes</p>
+    </div>
 
-  <header>
-    <div class="logo-mark">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    </div>
-    <div class="logo-text">
-      <div class="name">LuaObf</div>
-      <div class="tagline">Roblox Script Obfuscator</div>
-    </div>
-    <div class="header-pills">
-      <span class="pill active">VM Bytecode</span>
-      <span class="pill active">Random Opcodes</span>
-      <span class="pill active">Encrypted</span>
-    </div>
-  </header>
+    <div class="obf-panel">
+        <div class="input-area">
+            <div class="panel-header">
+                <h3>📜 INPUT (Lua script)</h3>
+                <div class="badge">raw lua</div>
+            </div>
+            <textarea id="luaInput" placeholder='-- Paste your Lua code here
+print("Hello from protected script")
 
-  <!-- Editors -->
-  <div class="editors">
-    <div class="editor-card">
-      <div class="editor-bar">
-        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
-        <span class="editor-label">input.lua</span>
-        <span class="lang-tag input">INPUT</span>
-      </div>
-      <div class="editor-wrap">
-        <div class="line-nums" id="inLines">1</div>
-        <textarea id="inputCode" spellcheck="false" autocorrect="off" autocapitalize="off"
-          placeholder="-- Paste your Roblox Lua script here...
--- Example:
-local Players = game:GetService('Players')
-local player = Players.LocalPlayer
-print('Hello, ' .. player.Name)"></textarea>
-      </div>
-    </div>
-    <div class="editor-card">
-      <div class="editor-bar">
-        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
-        <span class="editor-label">obfuscated.lua</span>
-        <span class="lang-tag output">OUTPUT</span>
-      </div>
-      <div class="editor-wrap">
-        <div class="line-nums" id="outLines">1</div>
-        <textarea id="outputCode" spellcheck="false" readonly placeholder="-- Obfuscated output will appear here..."></textarea>
-      </div>
-    </div>
-  </div>
+function onStart()
+    local msg = "Protected by Sttar"
+    return msg
+end
 
-  <!-- Action bar -->
-  <div class="action-bar">
-    <div class="stats">Input: <span id="inChars">0</span> chars &nbsp;·&nbsp; <span id="inLines2">0</span> lines</div>
-    <button class="btn-obf" id="obfBtn" disabled>
-      <div class="spinner"></div>
-      <span class="btn-label">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:-2px;margin-right:5px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Obfuscate
-      </span>
-    </button>
-    <button class="btn-copy-out" id="copyOutBtn" disabled>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline;vertical-align:-1px;margin-right:5px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      Copy Output
-    </button>
-    <button class="btn-clear" id="clearBtn">Clear</button>
-  </div>
-
-  <div class="error-bar" id="errorBar"></div>
-
-  <!-- Stats -->
-  <div class="stat-row" id="statRow" style="display:none">
-    <div class="stat-card"><div class="stat-val" id="statInSize">—</div><div class="stat-label">Input Size</div></div>
-    <div class="stat-card"><div class="stat-val" id="statOutSize">—</div><div class="stat-label">Output Size</div></div>
-    <div class="stat-card"><div class="stat-val" id="statRatio">—</div><div class="stat-label">Size Ratio</div></div>
-    <div class="stat-card"><div class="stat-val" id="statInst">—</div><div class="stat-label">Instructions</div></div>
-  </div>
-
-  <!-- Info panels -->
-  <div class="info-grid">
-    <div class="info-panel">
-      <div class="info-head">
-        <div class="ihead-icon ic-p"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-        <span class="ihead-title">How It Works</span>
-      </div>
-      <div class="info-body">
-        <div class="info-item">Your Lua code is parsed into an AST (Abstract Syntax Tree)</div>
-        <div class="info-item">Compiled into custom bytecode with randomized opcodes</div>
-        <div class="info-item">Constants are multi-layer encrypted with unique keys</div>
-        <div class="info-item">A unique VM interpreter is generated to run the bytecode</div>
-        <div class="info-item">Junk instructions are injected to confuse analysis tools</div>
-      </div>
-    </div>
-    <div class="info-panel">
-      <div class="info-head">
-        <div class="ihead-icon ic-g"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <span class="ihead-title">Protection Layers</span>
-      </div>
-      <div class="info-body">
-        <div class="info-item">Random opcodes — different every compile</div>
-        <div class="info-item">Multi-key XOR + byte shuffle encryption</div>
-        <div class="info-item">Custom base alphabet (replaces standard base64)</div>
-        <div class="info-item">~45% junk instruction injection</div>
-        <div class="info-item">Opaque predicates + dead code branches</div>
-        <div class="info-item">All VM internals use randomized variable names</div>
-      </div>
-    </div>
-    <div class="info-panel">
-      <div class="info-head">
-        <div class="ihead-icon ic-y"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>
-        <span class="ihead-title">Limitations</span>
-      </div>
-      <div class="info-body">
-        <div class="info-item">Complex closures / upvalues may not fully execute</div>
-        <div class="info-item">pcall/xpcall behavior may differ inside VM</div>
-        <div class="info-item">Max script size: 50KB</div>
-        <div class="info-item">Always test your obfuscated script before use</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Credits -->
-  <div class="credits-panel">
-    <div class="credits-head">
-      <div class="ihead-icon ic-p" style="width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
-      <span class="ihead-title">Credits</span>
-    </div>
-    <div class="credits-body">
-      <div>
-        <div class="creator-name">Sttar Albiola</div>
-        <div class="creator-tag">Creator &amp; Developer</div>
-      </div>
-      <div class="credit-links">
-        <a class="credit-link" href="https://www.facebook.com/sttaralbiola05" target="_blank" rel="noopener">
-          <span class="cl-label">FB</span> sttaralbiola05
-        </a>
-        <a class="credit-link" href="https://www.youtube.com/@Yasuoshin2012" target="_blank" rel="noopener">
-          <span class="cl-label">YT</span> @Yasuoshin2012
-        </a>
-        <div class="credit-link">
-          <span class="cl-label">DC</span> Sttar_Albiola
+onStart()'></textarea>
         </div>
-        <div class="credit-link">
-          <span class="cl-label">RBX</span> 0nlyymikii
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <footer>LuaObf &mdash; For educational &amp; legitimate Roblox development use only.</footer>
+        <div class="output-area">
+            <div class="panel-header">
+                <h3>🔐 OBFUSCATED OUTPUT</h3>
+                <div class="badge">VM + encryption</div>
+            </div>
+            <textarea id="luaOutput" readonly placeholder="Obfuscated code will appear here..." style="color:#b0f0cc;"></textarea>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button id="obfuscateBtn" class="btn btn-primary">🚀 OBFUSCATE</button>
+        <button id="copyResultBtn" class="btn btn-secondary">📋 Copy Output</button>
+        <button id="downloadLuaBtn" class="btn btn-secondary">💾 Download .lua</button>
+        <button id="downloadTxtBtn" class="btn btn-secondary">📄 Download .txt</button>
+        <button id="clearBtn" class="btn btn-danger">🗑️ Clear All</button>
+    </div>
+
+    <!-- Big result area (duplicate for better visibility) but we reuse the output textarea? better a separate big card -->
+    <div class="result-box">
+        <div class="result-header">
+            <span>📦 OBFUSCATED RESULT (BIG VIEW)</span>
+            <div class="copy-group">
+                <button id="copyBigBtn" class="small-btn">📋 Copy</button>
+                <button id="saveLuaBigBtn" class="small-btn">⬇️ Save as .lua</button>
+                <button id="saveTxtBigBtn" class="small-btn">📄 Save as .txt</button>
+            </div>
+        </div>
+        <div id="bigResult" class="big-output">⚡ Click "OBFUSCATE" to protect your script. Result will be displayed here.</div>
+    </div>
+
+    <div id="statusMessage" class="status-msg"></div>
+
+    <div class="credits">
+        <span>⚡ Created by: <strong style="color:#88ffcc;">Sttar</strong>   |  
+        Facebook: <a href="https://facebook.com/Sttar Albiola" target="_blank">Sttar Albiola</a>   |  
+        Discord: <strong>Sttar_Albiola</strong>   |  
+        ⚡ VM Obfuscator — ultra secure</span><br>
+        <span style="font-size:0.7rem;">🔒 Every compilation uses unique names, opaque predicates, and math obfuscation.</span>
+    </div>
 </div>
 
 <script>
-  const inputCode  = document.getElementById('inputCode');
-  const outputCode = document.getElementById('outputCode');
-  const obfBtn     = document.getElementById('obfBtn');
-  const copyOutBtn = document.getElementById('copyOutBtn');
-  const clearBtn   = document.getElementById('clearBtn');
-  const errorBar   = document.getElementById('errorBar');
-  const inChars    = document.getElementById('inChars');
-  const inLines2   = document.getElementById('inLines2');
-  const inLines    = document.getElementById('inLines');
-  const outLines   = document.getElementById('outLines');
-  const statRow    = document.getElementById('statRow');
+    (function() {
+        // DOM elements
+        const inputArea = document.getElementById('luaInput');
+        const outputArea = document.getElementById('luaOutput');
+        const bigResultDiv = document.getElementById('bigResult');
+        const obfBtn = document.getElementById('obfuscateBtn');
+        const copyBtn = document.getElementById('copyResultBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const copyBig = document.getElementById('copyBigBtn');
+        const saveLuaBig = document.getElementById('saveLuaBigBtn');
+        const saveTxtBig = document.getElementById('saveTxtBigBtn');
+        const downloadLua = document.getElementById('downloadLuaBtn');
+        const downloadTxt = document.getElementById('downloadTxtBtn');
+        const statusDiv = document.getElementById('statusMessage');
 
-  function updateLineNums(ta, lnEl) {
-    const count = ta.value.split('\n').length;
-    lnEl.textContent = Array.from({length: count}, (_, i) => i+1).join('\n');
-  }
+        let currentObfuscatedCode = "";
 
-  function updateMeta() {
-    const v = inputCode.value;
-    inChars.textContent = v.length;
-    inLines2.textContent = v.split('\n').length;
-    updateLineNums(inputCode, inLines);
-    obfBtn.disabled = v.trim().length === 0;
-  }
+        function setStatus(msg, isError = false, isLoading = false) {
+            statusDiv.innerHTML = msg;
+            statusDiv.style.color = isError ? "#ffaa88" : "#b0ffcc";
+            if (isLoading) {
+                statusDiv.innerHTML = `<span class="loader"></span> ${msg}`;
+                statusDiv.style.color = "#b0ffcc";
+            } else {
+                statusDiv.innerHTML = msg;
+            }
+            if (!isError && !isLoading) {
+                setTimeout(() => {
+                    if (statusDiv.innerHTML === msg) statusDiv.innerHTML = "";
+                }, 3800);
+            }
+        }
 
-  inputCode.addEventListener('input', updateMeta);
-  inputCode.addEventListener('scroll', () => {
-    inLines.style.transform = `translateY(${-inputCode.scrollTop}px)`;
-  });
-  outputCode.addEventListener('scroll', () => {
-    outLines.style.transform = `translateY(${-outputCode.scrollTop}px)`;
-  });
-  inputCode.addEventListener('keydown', e => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const s = inputCode.selectionStart, en = inputCode.selectionEnd;
-      inputCode.value = inputCode.value.substring(0,s) + '  ' + inputCode.value.substring(en);
-      inputCode.selectionStart = inputCode.selectionEnd = s+2;
-      updateMeta();
-    }
-  });
+        function animateButton(btn) {
+            if (!btn) return;
+            btn.classList.add('send-animation');
+            setTimeout(() => btn.classList.remove('send-animation'), 500);
+        }
 
-  updateMeta();
+        async function obfuscateCode() {
+            const code = inputArea.value.trim();
+            if (!code) {
+                setStatus("❌ Please enter Lua code to obfuscate", true);
+                animateButton(obfBtn);
+                return;
+            }
 
-  obfBtn.addEventListener('click', async () => {
-    const code = inputCode.value.trim();
-    if (!code) return;
-    errorBar.classList.remove('visible');
-    outputCode.value = '';
-    updateLineNums(outputCode, outLines);
-    obfBtn.classList.add('loading');
-    obfBtn.disabled = true;
-    copyOutBtn.disabled = true;
-    statRow.style.display = 'none';
+            setStatus("🔒 Obfuscating with VM engine... please wait", false, true);
+            animateButton(obfBtn);
 
-    try {
-      const res = await fetch('/api/obfuscate', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({code}),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Obfuscation failed.');
+            try {
+                const response = await fetch('/obfuscate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: code
+                });
 
-      outputCode.value = data.result;
-      updateLineNums(outputCode, outLines);
-      copyOutBtn.disabled = false;
+                if (!response.ok) {
+                    let errorMsg = `HTTP ${response.status}`;
+                    try {
+                        const errJson = await response.json();
+                        errorMsg = errJson.error || errorMsg;
+                    } catch(e) {}
+                    throw new Error(errorMsg);
+                }
 
-      // Show stats
-      const inSz  = code.length;
-      const outSz = data.result.length;
-      const ratio = (outSz / inSz).toFixed(1);
-      const instMatch = data.result.match(/\{op=/g);
-      const instCount = instMatch ? instMatch.length : '?';
-      document.getElementById('statInSize').textContent  = inSz  > 1000 ? (inSz/1024).toFixed(1)+'KB' : inSz+'B';
-      document.getElementById('statOutSize').textContent = outSz > 1000 ? (outSz/1024).toFixed(1)+'KB' : outSz+'B';
-      document.getElementById('statRatio').textContent   = ratio+'x';
-      document.getElementById('statInst').textContent    = instCount;
-      statRow.style.display = 'grid';
+                const data = await response.json();
+                if (data.success && data.code) {
+                    currentObfuscatedCode = data.code;
+                    outputArea.value = currentObfuscatedCode;
+                    bigResultDiv.innerText = currentObfuscatedCode;
+                    setStatus("✅ Obfuscation successful! VM protection applied.", false);
+                    // extra send animation
+                    bigResultDiv.classList.add('send-animation');
+                    setTimeout(() => bigResultDiv.classList.remove('send-animation'), 450);
+                } else {
+                    throw new Error(data.error || "Unknown obfuscation error");
+                }
+            } catch (err) {
+                console.error(err);
+                setStatus(`⚠️ Obfuscation failed: ${err.message}`, true);
+                outputArea.value = "";
+                bigResultDiv.innerText = "❌ Obfuscation error. Check backend or network.";
+                currentObfuscatedCode = "";
+            }
+        }
 
-    } catch(err) {
-      errorBar.textContent = '⚠  ' + err.message;
-      errorBar.classList.add('visible');
-    } finally {
-      obfBtn.classList.remove('loading');
-      obfBtn.disabled = false;
-    }
-  });
+        function copyToClipboard(text, successMsg = "📋 Copied to clipboard!") {
+            if (!text) {
+                setStatus("❌ Nothing to copy", true);
+                return;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                setStatus(successMsg, false);
+                animateButton(copyBtn);
+                animateButton(copyBig);
+            }).catch(() => {
+                setStatus("⚠️ Could not copy", true);
+            });
+        }
 
-  copyOutBtn.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(outputCode.value);
-      copyOutBtn.textContent = '✓  Copied!';
-      copyOutBtn.classList.add('copied');
-      setTimeout(() => {
-        copyOutBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline;vertical-align:-1px;margin-right:5px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output`;
-        copyOutBtn.classList.remove('copied');
-      }, 2000);
-    } catch { outputCode.select(); document.execCommand('copy'); }
-  });
+        function downloadFile(content, filename, mimeType = "text/plain") {
+            if (!content) {
+                setStatus("❌ No obfuscated code to download", true);
+                return;
+            }
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            setStatus(`✅ Downloaded as ${filename}`, false);
+        }
 
-  clearBtn.addEventListener('click', () => {
-    inputCode.value = '';
-    outputCode.value = '';
-    errorBar.classList.remove('visible');
-    statRow.style.display = 'none';
-    copyOutBtn.disabled = true;
-    updateLineNums(inputCode, inLines);
-    updateLineNums(outputCode, outLines);
-    updateMeta();
-  });
+        // Event listeners with animations
+        obfBtn.addEventListener('click', obfuscateCode);
+        clearBtn.addEventListener('click', () => {
+            inputArea.value = "";
+            outputArea.value = "";
+            bigResultDiv.innerText = "✨ Cleared. Ready for new Lua script.";
+            currentObfuscatedCode = "";
+            setStatus("Cleared all fields", false);
+            animateButton(clearBtn);
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (outputArea.value) copyToClipboard(outputArea.value, "📋 Obfuscated code copied!");
+            else if (currentObfuscatedCode) copyToClipboard(currentObfuscatedCode);
+            else setStatus("⚠️ No obfuscated output yet", true);
+        });
+        copyBig.addEventListener('click', () => {
+            if (bigResultDiv.innerText && !bigResultDiv.innerText.includes("Click OBFUSCATE")) {
+                copyToClipboard(bigResultDiv.innerText, "📋 Big result copied!");
+            } else {
+                setStatus("⚠️ No result to copy", true);
+            }
+        });
+
+        downloadLua.addEventListener('click', () => {
+            const code = outputArea.value || currentObfuscatedCode;
+            if (code) downloadFile(code, "obfuscated_script.lua", "text/plain");
+            else setStatus("❌ No obfuscated code", true);
+            animateButton(downloadLua);
+        });
+        downloadTxt.addEventListener('click', () => {
+            const code = outputArea.value || currentObfuscatedCode;
+            if (code) downloadFile(code, "obfuscated_output.txt", "text/plain");
+            else setStatus("❌ No obfuscated code", true);
+            animateButton(downloadTxt);
+        });
+        saveLuaBig.addEventListener('click', () => {
+            const bigContent = bigResultDiv.innerText;
+            if (bigContent && !bigContent.includes("Click OBFUSCATE")) {
+                downloadFile(bigContent, "vm_protected.lua", "text/plain");
+                animateButton(saveLuaBig);
+            } else setStatus("⚠️ No result available", true);
+        });
+        saveTxtBig.addEventListener('click', () => {
+            const bigContent = bigResultDiv.innerText;
+            if (bigContent && !bigContent.includes("Click OBFUSCATE")) {
+                downloadFile(bigContent, "protected_output.txt", "text/plain");
+                animateButton(saveTxtBig);
+            } else setStatus("⚠️ No result available", true);
+        });
+    })();
 </script>
 </body>
 </html>
