@@ -1,74 +1,47 @@
-// src/obfuscator.js
-// Main pipeline: source → AST → bytecode → encrypt → VM
-
-'use strict';
-
-const luaparse = require('luaparse');
-const Compiler = require('./compiler');
-const { generateOpcodeTable } = require('./opcodes');
-const { encryptConstantPool, encryptBytecode, generateDecryptorLua } = require('./encryptor');
-const { injectJunk } = require('./junk');
+const { LuaCompiler } = require('./compiler');
+const { generateEncryptionKeys, encryptData, generateDecryptor } = require('./encryptor');
 const { generateVM } = require('./vmgen');
+const { nameToNum } = require('./opcodes');
 
-/**
- * Main obfuscation function.
- * @param {string} source - Lua source code
- * @returns {string} - Obfuscated Lua code
- */
-function obfuscate(source) {
-  // ── Step 1: Parse to AST ─────────────────────────────────────
-  let ast;
-  try {
-    ast = luaparse.parse(source, {
-      luaVersion: '5.1',
-      encodingMode: 'pseudo-latin1',
-    });
-  } catch (e) {
-    throw new Error(`Lua parse error: ${e.message}`);
-  }
-
-  // ── Step 2: Generate randomized opcode table ─────────────────
-  const opcodeTable = generateOpcodeTable();
-
-  // ── Step 3: Compile AST → bytecode ──────────────────────────
-  const compiler = new Compiler(opcodeTable);
-  const { instructions, constants } = compiler.compile(ast);
-
-  if (instructions.length === 0) {
-    throw new Error('Compilation produced no instructions.');
-  }
-
-  // ── Step 4: Inject junk instructions ────────────────────────
-  const junkInstructions = injectJunk(
-    instructions,
-    opcodeTable.nameToNum,
-    constants,
-    0.45  // 45% density — adds ~45% more fake instructions
-  );
-
-  // ── Step 5: Encrypt constant pool ───────────────────────────
-  const {
-    encoded: encryptedKST,
-    key1, key2, alphabet
-  } = encryptConstantPool(constants);
-
-  // ── Step 6: Encrypt bytecode ─────────────────────────────────
-  const encryptedBC = encryptBytecode(junkInstructions, key1, key2, alphabet);
-
-  // ── Step 7: Generate decryptor Lua ──────────────────────────
-  const varPrefix = 'x' + Math.random().toString(36).slice(2, 6) + '_';
-  const decryptorLua = generateDecryptorLua(key1, key2, alphabet, varPrefix);
-
-  // ── Step 8: Generate VM ──────────────────────────────────────
-  const output = generateVM(
-    opcodeTable,
-    encryptedBC,
-    encryptedKST,
-    decryptorLua,
-    {}
-  );
-
-  return output;
+async function obfuscateLua(luaCode) {
+    try {
+        const compiler = new LuaCompiler();
+        const compiled = compiler.compile(luaCode);
+        
+        const { bytecode, constants } = compiled;
+        
+        const bcStr = JSON.stringify(bytecode);
+        const constStr = JSON.stringify(constants);
+        
+        const { key1: bcKey1, key2: bcKey2 } = generateEncryptionKeys();
+        const { key1: constKey1, key2: constKey2 } = generateEncryptionKeys();
+        
+        const charMap = {
+            "0":"e","1":"p","2":"8","3":"6","4":"S","5":"j","6":"b","7":"u","8":"Y","9":"a",
+            "j":"A","C":"B","z":"C","n":"D","h":"E","o":"F","w":"G","K":"H","Q":"I","+":"J",
+            "O":"K","g":"L","E":"M","p":"N","b":"O","u":"P","L":"Q","Z":"R","Y":"T","e":"U",
+            "c":"V","x":"W","T":"X","r":"Z","J":"c","S":"d","H":"f","q":"g","I":"h","l":"i",
+            "U":"k","a":"l","M":"m","N":"n","R":"o","f":"q","d":"r","F":"s","m":"t","y":"v",
+            "k":"w","X":"x","t":"y","V":"z","A":"0","D":"1","/":"2","P":"3","G":"4","v":"5",
+            "W":"7","s":"9","i":"+","B":"/"
+        };
+        
+        const encryptedBC = encryptData(bcStr, bcKey1, bcKey2);
+        const encryptedConst = encryptData(constStr, constKey1, constKey2);
+        
+        const decryptorBC = generateDecryptor(bcKey1, bcKey2, charMap);
+        const decryptorConst = generateDecryptor(constKey1, constKey2, charMap);
+        
+        const combinedDecryptor = decryptorBC;
+        
+        const opcodeTable = { nameToNum };
+        
+        const vmCode = generateVM(opcodeTable, encryptedBC, encryptedConst, combinedDecryptor);
+        
+        return vmCode;
+    } catch (error) {
+        throw new Error(`Obfuscation failed: ${error.message}`);
+    }
 }
 
-module.exports = { obfuscate };
+module.exports = { obfuscateLua };
