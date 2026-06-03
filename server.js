@@ -5,7 +5,7 @@ const cors = require('cors');
 const { obfuscateLua } = require('./src/obfuscator');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;  // <- Gumamit ng PORT from environment
 
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -43,7 +43,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+// IMPORTANT: Listen on 0.0.0.0, not localhost
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Lua Obfuscator running on port ${PORT}`);
   console.log(`Protected by: Sttar Albiola`);
 });
