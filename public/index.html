@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LuaObf — Roblox Script Obfuscator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#090b0e;
+      --surface:#0f1116;
+      --surface2:#13161d;
+      --border:#1a1e28;
+      --border-hi:#252b3a;
+      --accent:#bf5fff;
+      --accent2:#7c3aed;
+      --glow:rgba(191,95,255,0.15);
+      --green:#47ffb2;
+      --red:#ff4757;
+      --text:#c4c9d4;
+      --text-dim:#5a6070;
+      --mono:'JetBrains Mono',monospace;
+      --display:'Syne',sans-serif;
+    }
+    html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:14px;line-height:1.6;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");opacity:0.02;pointer-events:none;z-index:0}
+    body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:0.3;pointer-events:none;z-index:0}
+
+    .wrapper{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px 64px}
+
+    /* Header */
+    header{width:100%;max-width:1000px;margin-bottom:32px;display:flex;align-items:center;gap:14px;animation:fadeDown .5s ease both}
+    .logo-mark{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px var(--glow)}
+    .logo-text .name{font-family:var(--display);font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px}
+    .logo-text .tagline{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+    .header-pills{margin-left:auto;display:flex;gap:8px}
+    .pill{padding:3px 10px;border:1px solid var(--border-hi);border-radius:20px;font-size:11px;color:var(--text-dim)}
+    .pill.active{border-color:rgba(191,95,255,.4);color:var(--accent);background:rgba(191,95,255,.07)}
+
+    /* Main editors */
+    .editors{width:100%;max-width:1000px;display:grid;grid-template-columns:1fr 1fr;gap:12px;animation:fadeUp .5s ease .1s both}
+    @media(max-width:700px){.editors{grid-template-columns:1fr}}
+
+    .editor-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+    .editor-bar{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+    .dots{display:flex;gap:5px}
+    .dot{width:10px;height:10px;border-radius:50%}
+    .dot-r{background:#ff5f57}.dot-y{background:#febc2e}.dot-g{background:#28c840}
+    .editor-label{margin-left:6px;font-size:11px;color:var(--text-dim)}
+    .lang-tag{margin-left:auto;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.05em}
+    .lang-tag.input{background:rgba(71,255,178,.1);border:1px solid rgba(71,255,178,.25);color:var(--green)}
+    .lang-tag.output{background:rgba(191,95,255,.1);border:1px solid rgba(191,95,255,.25);color:var(--accent)}
+
+    .editor-wrap{position:relative;flex:1}
+    .line-nums{position:absolute;top:0;left:0;width:44px;padding:14px 8px 14px 0;text-align:right;font-size:12px;line-height:1.75;color:var(--border-hi);pointer-events:none;user-select:none;border-right:1px solid var(--border)}
+    textarea{display:block;width:100%;min-height:320px;resize:vertical;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.75;padding:14px 14px 14px 58px;caret-color:var(--accent);tab-size:2}
+    textarea::placeholder{color:var(--text-dim)}
+    textarea[readonly]{color:var(--accent);background:rgba(191,95,255,.02)}
+
+    /* Action bar */
+    .action-bar{width:100%;max-width:1000px;margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:fadeUp .5s ease .2s both}
+    .stats{font-size:11px;color:var(--text-dim)}
+    .stats span{color:var(--text)}
+
+    button{cursor:pointer;font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.04em;border:none;border-radius:6px;transition:all .15s ease}
+    .btn-obf{padding:11px 28px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;gap:8px;box-shadow:0 2px 16px var(--glow)}
+    .btn-obf:hover{transform:translateY(-1px);box-shadow:0 4px 24px rgba(191,95,255,.35)}
+    .btn-obf:active{transform:translateY(0)}
+    .btn-obf:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-obf .spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+    .btn-obf.loading .spinner{display:block}
+    .btn-obf.loading .btn-label{display:none}
+
+    .btn-copy-out{padding:11px 18px;background:rgba(191,95,255,.1);color:var(--accent);border:1px solid rgba(191,95,255,.25)}
+    .btn-copy-out:hover{background:rgba(191,95,255,.18)}
+    .btn-copy-out.copied{background:rgba(71,255,178,.12);color:var(--green);border-color:rgba(71,255,178,.3)}
+
+    .btn-clear{padding:11px 16px;background:rgba(255,255,255,.04);color:var(--text-dim);border:1px solid var(--border)}
+    .btn-clear:hover{background:rgba(255,255,255,.07);color:var(--text)}
+
+    /* Error */
+    .error-bar{width:100%;max-width:1000px;margin-top:10px;padding:11px 16px;background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.3);border-radius:8px;color:var(--red);font-size:12px;display:none;animation:fadeUp .3s ease both}
+    .error-bar.visible{display:block}
+
+    /* Stats cards */
+    .stat-row{margin-top:20px;width:100%;max-width:1000px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;animation:fadeUp .5s ease .3s both}
+    @media(max-width:700px){.stat-row{grid-template-columns:1fr 1fr}}
+    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+    .stat-val{font-family:var(--display);font-size:20px;font-weight:800;color:var(--accent)}
+    .stat-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+
+    /* Info panels */
+    .info-grid{margin-top:16px;width:100%;max-width:1000px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;animation:fadeUp .5s ease .35s both}
+    @media(max-width:700px){.info-grid{grid-template-columns:1fr}}
+    .info-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .info-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
+    .ihead-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .ic-p{background:rgba(191,95,255,.12);color:var(--accent)}
+    .ic-g{background:rgba(71,255,178,.12);color:var(--green)}
+    .ic-y{background:rgba(232,255,71,.12);color:#e8ff47}
+    .ihead-title{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.04em}
+    .info-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+    .info-item{font-size:11px;color:var(--text);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+    .info-item::before{content:'›';color:var(--accent);flex-shrink:0}
+
+    /* Credits */
+    .credits-panel{margin-top:16px;width:100%;max-width:1000px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;animation:fadeUp .5s ease .4s both}
+    .credits-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.015)}
+    .credits-body{padding:14px;display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+    .creator-name{font-family:var(--display);font-size:17px;font-weight:800;color:var(--accent)}
+    .creator-tag{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+    .credit-links{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+    .credit-link{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.04);border:1px solid var(--border-hi);border-radius:6px;text-decoration:none;font-size:11px;color:var(--text);transition:all .15s ease}
+    .credit-link:hover{background:rgba(191,95,255,.1);border-color:rgba(191,95,255,.3);color:var(--accent)}
+    .credit-link .cl-label{color:var(--text-dim);font-size:10px;margin-right:2px;text-transform:uppercase}
+
+    footer{margin-top:40px;font-size:11px;color:var(--text-dim);text-align:center;animation:fadeUp .5s ease .45s both}
+
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div class="logo-mark">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div class="logo-text">
+      <div class="name">LuaObf</div>
+      <div class="tagline">Roblox Script Obfuscator</div>
+    </div>
+    <div class="header-pills">
+      <span class="pill active">VM Bytecode</span>
+      <span class="pill active">Random Opcodes</span>
+      <span class="pill active">Encrypted</span>
+    </div>
+  </header>
+
+  <!-- Editors -->
+  <div class="editors">
+    <div class="editor-card">
+      <div class="editor-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <span class="editor-label">input.lua</span>
+        <span class="lang-tag input">INPUT</span>
+      </div>
+      <div class="editor-wrap">
+        <div class="line-nums" id="inLines">1</div>
+        <textarea id="inputCode" spellcheck="false" autocorrect="off" autocapitalize="off"
+          placeholder="-- Paste your Roblox Lua script here...
+-- Example:
+local Players = game:GetService('Players')
+local player = Players.LocalPlayer
+print('Hello, ' .. player.Name)"></textarea>
+      </div>
+    </div>
+    <div class="editor-card">
+      <div class="editor-bar">
+        <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+        <span class="editor-label">obfuscated.lua</span>
+        <span class="lang-tag output">OUTPUT</span>
+      </div>
+      <div class="editor-wrap">
+        <div class="line-nums" id="outLines">1</div>
+        <textarea id="outputCode" spellcheck="false" readonly placeholder="-- Obfuscated output will appear here..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="action-bar">
+    <div class="stats">Input: <span id="inChars">0</span> chars &nbsp;·&nbsp; <span id="inLines2">0</span> lines</div>
+    <button class="btn-obf" id="obfBtn" disabled>
+      <div class="spinner"></div>
+      <span class="btn-label">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:-2px;margin-right:5px"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Obfuscate
+      </span>
+    </button>
+    <button class="btn-copy-out" id="copyOutBtn" disabled>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline;vertical-align:-1px;margin-right:5px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy Output
+    </button>
+    <button class="btn-clear" id="clearBtn">Clear</button>
+  </div>
+
+  <div class="error-bar" id="errorBar"></div>
+
+  <!-- Stats -->
+  <div class="stat-row" id="statRow" style="display:none">
+    <div class="stat-card"><div class="stat-val" id="statInSize">—</div><div class="stat-label">Input Size</div></div>
+    <div class="stat-card"><div class="stat-val" id="statOutSize">—</div><div class="stat-label">Output Size</div></div>
+    <div class="stat-card"><div class="stat-val" id="statRatio">—</div><div class="stat-label">Size Ratio</div></div>
+    <div class="stat-card"><div class="stat-val" id="statInst">—</div><div class="stat-label">Instructions</div></div>
+  </div>
+
+  <!-- Info panels -->
+  <div class="info-grid">
+    <div class="info-panel">
+      <div class="info-head">
+        <div class="ihead-icon ic-p"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <span class="ihead-title">How It Works</span>
+      </div>
+      <div class="info-body">
+        <div class="info-item">Your Lua code is parsed into an AST (Abstract Syntax Tree)</div>
+        <div class="info-item">Compiled into custom bytecode with randomized opcodes</div>
+        <div class="info-item">Constants are multi-layer encrypted with unique keys</div>
+        <div class="info-item">A unique VM interpreter is generated to run the bytecode</div>
+        <div class="info-item">Junk instructions are injected to confuse analysis tools</div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="info-head">
+        <div class="ihead-icon ic-g"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <span class="ihead-title">Protection Layers</span>
+      </div>
+      <div class="info-body">
+        <div class="info-item">Random opcodes — different every compile</div>
+        <div class="info-item">Multi-key XOR + byte shuffle encryption</div>
+        <div class="info-item">Custom base alphabet (replaces standard base64)</div>
+        <div class="info-item">~45% junk instruction injection</div>
+        <div class="info-item">Opaque predicates + dead code branches</div>
+        <div class="info-item">All VM internals use randomized variable names</div>
+      </div>
+    </div>
+    <div class="info-panel">
+      <div class="info-head">
+        <div class="ihead-icon ic-y"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>
+        <span class="ihead-title">Limitations</span>
+      </div>
+      <div class="info-body">
+        <div class="info-item">Complex closures / upvalues may not fully execute</div>
+        <div class="info-item">pcall/xpcall behavior may differ inside VM</div>
+        <div class="info-item">Max script size: 50KB</div>
+        <div class="info-item">Always test your obfuscated script before use</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credits -->
+  <div class="credits-panel">
+    <div class="credits-head">
+      <div class="ihead-icon ic-p" style="width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+      <span class="ihead-title">Credits</span>
+    </div>
+    <div class="credits-body">
+      <div>
+        <div class="creator-name">Sttar Albiola</div>
+        <div class="creator-tag">Creator &amp; Developer</div>
+      </div>
+      <div class="credit-links">
+        <a class="credit-link" href="https://www.facebook.com/sttaralbiola05" target="_blank" rel="noopener">
+          <span class="cl-label">FB</span> sttaralbiola05
+        </a>
+        <a class="credit-link" href="https://www.youtube.com/@Yasuoshin2012" target="_blank" rel="noopener">
+          <span class="cl-label">YT</span> @Yasuoshin2012
+        </a>
+        <div class="credit-link">
+          <span class="cl-label">DC</span> Sttar_Albiola
+        </div>
+        <div class="credit-link">
+          <span class="cl-label">RBX</span> 0nlyymikii
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>LuaObf &mdash; For educational &amp; legitimate Roblox development use only.</footer>
+</div>
+
+<script>
+  const inputCode  = document.getElementById('inputCode');
+  const outputCode = document.getElementById('outputCode');
+  const obfBtn     = document.getElementById('obfBtn');
+  const copyOutBtn = document.getElementById('copyOutBtn');
+  const clearBtn   = document.getElementById('clearBtn');
+  const errorBar   = document.getElementById('errorBar');
+  const inChars    = document.getElementById('inChars');
+  const inLines2   = document.getElementById('inLines2');
+  const inLines    = document.getElementById('inLines');
+  const outLines   = document.getElementById('outLines');
+  const statRow    = document.getElementById('statRow');
+
+  function updateLineNums(ta, lnEl) {
+    const count = ta.value.split('\n').length;
+    lnEl.textContent = Array.from({length: count}, (_, i) => i+1).join('\n');
+  }
+
+  function updateMeta() {
+    const v = inputCode.value;
+    inChars.textContent = v.length;
+    inLines2.textContent = v.split('\n').length;
+    updateLineNums(inputCode, inLines);
+    obfBtn.disabled = v.trim().length === 0;
+  }
+
+  inputCode.addEventListener('input', updateMeta);
+  inputCode.addEventListener('scroll', () => {
+    inLines.style.transform = `translateY(${-inputCode.scrollTop}px)`;
+  });
+  outputCode.addEventListener('scroll', () => {
+    outLines.style.transform = `translateY(${-outputCode.scrollTop}px)`;
+  });
+  inputCode.addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = inputCode.selectionStart, en = inputCode.selectionEnd;
+      inputCode.value = inputCode.value.substring(0,s) + '  ' + inputCode.value.substring(en);
+      inputCode.selectionStart = inputCode.selectionEnd = s+2;
+      updateMeta();
+    }
+  });
+
+  updateMeta();
+
+  obfBtn.addEventListener('click', async () => {
+    const code = inputCode.value.trim();
+    if (!code) return;
+    errorBar.classList.remove('visible');
+    outputCode.value = '';
+    updateLineNums(outputCode, outLines);
+    obfBtn.classList.add('loading');
+    obfBtn.disabled = true;
+    copyOutBtn.disabled = true;
+    statRow.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/obfuscate', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({code}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Obfuscation failed.');
+
+      outputCode.value = data.result;
+      updateLineNums(outputCode, outLines);
+      copyOutBtn.disabled = false;
+
+      // Show stats
+      const inSz  = code.length;
+      const outSz = data.result.length;
+      const ratio = (outSz / inSz).toFixed(1);
+      const instMatch = data.result.match(/\{op=/g);
+      const instCount = instMatch ? instMatch.length : '?';
+      document.getElementById('statInSize').textContent  = inSz  > 1000 ? (inSz/1024).toFixed(1)+'KB' : inSz+'B';
+      document.getElementById('statOutSize').textContent = outSz > 1000 ? (outSz/1024).toFixed(1)+'KB' : outSz+'B';
+      document.getElementById('statRatio').textContent   = ratio+'x';
+      document.getElementById('statInst').textContent    = instCount;
+      statRow.style.display = 'grid';
+
+    } catch(err) {
+      errorBar.textContent = '⚠  ' + err.message;
+      errorBar.classList.add('visible');
+    } finally {
+      obfBtn.classList.remove('loading');
+      obfBtn.disabled = false;
+    }
+  });
+
+  copyOutBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(outputCode.value);
+      copyOutBtn.textContent = '✓  Copied!';
+      copyOutBtn.classList.add('copied');
+      setTimeout(() => {
+        copyOutBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline;vertical-align:-1px;margin-right:5px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy Output`;
+        copyOutBtn.classList.remove('copied');
+      }, 2000);
+    } catch { outputCode.select(); document.execCommand('copy'); }
+  });
+
+  clearBtn.addEventListener('click', () => {
+    inputCode.value = '';
+    outputCode.value = '';
+    errorBar.classList.remove('visible');
+    statRow.style.display = 'none';
+    copyOutBtn.disabled = true;
+    updateLineNums(inputCode, inLines);
+    updateLineNums(outputCode, outLines);
+    updateMeta();
+  });
+</script>
+</body>
+</html>
