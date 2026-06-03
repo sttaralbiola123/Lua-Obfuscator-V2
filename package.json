@@ -1,7 +1,7 @@
 {
   "name": "lua-obfuscator",
   "version": "1.0.0",
-  "description": "Roblox Lua Obfuscator - Phase 2 (Bytecode VM + Random Opcodes + Encrypted Constants)",
+  "description": "Lua VM Obfuscator - Protects Lua scripts with virtual machine encryption",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,12 +9,13 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "luaparse": "^0.3.1"
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "keywords": ["lua", "obfuscator", "vm", "security", "protection"],
+  "author": "Sttar Albiola",
+  "license": "MIT"
 }
