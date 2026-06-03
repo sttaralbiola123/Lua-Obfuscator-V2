@@ -38,6 +38,10 @@ function generateHardPredicate() {
 }
 
 function obfuscateMath(expr, op) {
+  if (!expr || typeof expr !== 'string') {
+    return `(${expr})`;
+  }
+  
   const patterns = {
     '+': [
       '(({0} | {1}) + ({0} & {1}))',
@@ -59,7 +63,18 @@ function obfuscateMath(expr, op) {
   };
 
   const list = patterns[op] || [`(${expr})`];
-  return list[Math.floor(Math.random() * list.length)].replace('{0}', expr.split(op)[0].trim()).replace('{1}', expr.split(op)[1].trim());
+  
+  const splitIndex = expr.indexOf(op);
+  if (splitIndex === -1) {
+    return `(${expr})`;
+  }
+  
+  const left = expr.substring(0, splitIndex).trim();
+  const right = expr.substring(splitIndex + 1).trim();
+  
+  return list[Math.floor(Math.random() * list.length)]
+    .replace('{0}', left)
+    .replace('{1}', right);
 }
 
 function generateVM(opcodeTable, encryptedBytecode, encryptedConstants, decryptorLua, options = {}) {
