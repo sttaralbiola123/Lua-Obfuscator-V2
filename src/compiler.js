@@ -1,207 +1,70 @@
 class LuaCompiler {
-    constructor() {
-        this.constants = [];
-        this.bytecode = [];
-        this.registers = {};
-        this.nextReg = 0;
+  constructor() {
+    this.constants = [];
+    this.bytecode = []; // array of numbers (32-bit packed)
+  }
+
+  compile(code) {
+    this.constants = [];
+    this.bytecode = [];
+    const lines = code.split('\n');
+    for (let line of lines) {
+      line = line.trim();
+      if (line === '' || line.startsWith('--')) continue;
+      this.compileLine(line);
     }
-    
-    compile(code) {
-        this.constants = [];
-        this.bytecode = [];
-        this.registers = {};
-        this.nextReg = 0;
-        
-        const lines = code.split('\n');
-        
-        for (let i = 0; i < lines.length; i++) {
-            this.compileLine(lines[i], i);
-        }
-        
-        return {
-            bytecode: this.bytecode,
-            constants: this.constants
-        };
+    // RETURN opcode (21)
+    this.emit(21, 0, 0, 0);
+    return { bytecode: this.bytecode, constants: this.constants };
+  }
+
+  compileLine(line) {
+    if (line.startsWith('print(')) {
+      const match = line.match(/print\((.*)\)/);
+      if (match) {
+        const arg = match[1];
+        const constIdx = this.addConstant(arg);
+        this.emit(1, 0, constIdx, 0); // LOADK
+        this.emit(20, 0, 1, 0);       // CALL
+      }
+    } else if (line.includes('=') && !line.includes('function')) {
+      const [varName, value] = line.split('=');
+      const constIdx = this.addConstant(value.trim());
+      this.emit(1, 1, constIdx, 0);
+      const globalIdx = this.addConstant(varName.trim());
+      this.emit(18, 1, globalIdx, 0);
+    } else if (line.startsWith('local function')) {
+      const match = line.match(/local function (\w+)/);
+      if (match) {
+        const name = match[1];
+        const idx = this.addConstant(name);
+        this.emit(29, 1, idx, 0);  // CLOSURE
+        this.emit(18, 1, idx, 0);  // SETGLOBAL
+      }
+    } else {
+      // fallback: treat as expression
+      const constIdx = this.addConstant(line);
+      this.emit(1, 0, constIdx, 0);
     }
-    
-    compileLine(line, lineNum) {
-        line = line.trim();
-        if (!line || line.startsWith('--')) return;
-        
-        if (line.includes('print(')) {
-            this.compilePrint(line);
-        } else if (line.includes('local function')) {
-            this.compileFunction(line);
-        } else if (line.includes('function')) {
-            this.compileFunction(line);
-        } else if (line.includes('return')) {
-            this.compileReturn(line);
-        } else if (line.includes('=')) {
-            this.compileAssignment(line);
-        } else if (line.includes('if')) {
-            this.compileCondition(line);
-        } else if (line.includes('for')) {
-            this.compileLoop(line);
-        } else if (line.includes('while')) {
-            this.compileLoop(line);
-        } else if (line.includes('call')) {
-            this.compileCall(line);
-        } else {
-            this.compileExpression(line);
-        }
+  }
+
+  emit(op, a, b, c) {
+    // Pack into 32-bit: op (6 bits), a (8 bits), b (9 bits), c (9 bits)
+    const packed = (op & 0x3F) |
+                  ((a & 0xFF) << 6) |
+                  ((b & 0x1FF) << 14) |
+                  ((c & 0x1FF) << 23);
+    this.bytecode.push(packed);
+  }
+
+  addConstant(value) {
+    let idx = this.constants.indexOf(value);
+    if (idx === -1) {
+      idx = this.constants.length;
+      this.constants.push(value);
     }
-    
-    compilePrint(line) {
-        const match = line.match(/print\((.*)\)/);
-        if (match) {
-            const arg = match[1];
-            const constIdx = this.addConstant(arg);
-            
-            this.bytecode.push({
-                op: 1,
-                a: this.getRegister(),
-                b: constIdx,
-                c: 0
-            });
-            
-            this.bytecode.push({
-                op: 19,
-                a: this.getRegister(),
-                b: 1,
-                c: 0
-            });
-        }
-    }
-    
-    compileFunction(line) {
-        const match = line.match(/function\s+(\w+)\s*\((.*?)\)/);
-        if (match) {
-            const funcName = match[1];
-            const params = match[2].split(',').map(p => p.trim());
-            
-            const constIdx = this.addConstant(funcName);
-            
-            this.bytecode.push({
-                op: 21,
-                a: this.getRegister(),
-                b: constIdx,
-                c: 0
-            });
-            
-            this.bytecode.push({
-                op: 18,
-                a: this.getRegister(),
-                b: this.getRegister(),
-                c: 0
-            });
-        }
-    }
-    
-    compileReturn(line) {
-        const match = line.match(/return\s+(.+)/);
-        if (match) {
-            const value = match[1];
-            const constIdx = this.addConstant(value);
-            
-            this.bytecode.push({
-                op: 1,
-                a: this.getRegister(),
-                b: constIdx,
-                c: 0
-            });
-            
-            this.bytecode.push({
-                op: 20,
-                a: this.getRegister(),
-                b: 1,
-                c: 0
-            });
-        } else {
-            this.bytecode.push({
-                op: 20,
-                a: 0,
-                b: 0,
-                c: 0
-            });
-        }
-    }
-    
-    compileAssignment(line) {
-        const match = line.match(/(\w+)\s*=\s*(.+)/);
-        if (match) {
-            const varName = match[1];
-            const value = match[2];
-            
-            const constIdx = this.addConstant(value);
-            const reg = this.getRegister();
-            
-            this.bytecode.push({
-                op: 1,
-                a: reg,
-                b: constIdx,
-                c: 0
-            });
-            
-            const globalIdx = this.addConstant(varName);
-            this.bytecode.push({
-                op: 18,
-                a: reg,
-                b: globalIdx,
-                c: 0
-            });
-        }
-    }
-    
-    compileCondition(line) {
-        this.bytecode.push({
-            op: 11,
-            a: 0,
-            b: 0,
-            c: 0
-        });
-    }
-    
-    compileLoop(line) {
-        this.bytecode.push({
-            op: 22,
-            a: 0,
-            b: 0,
-            c: 0
-        });
-    }
-    
-    compileCall(line) {
-        this.bytecode.push({
-            op: 19,
-            a: this.getRegister(),
-            b: 1,
-            c: 0
-        });
-    }
-    
-    compileExpression(line) {
-        const constIdx = this.addConstant(line);
-        this.bytecode.push({
-            op: 1,
-            a: this.getRegister(),
-            b: constIdx,
-            c: 0
-        });
-    }
-    
-    addConstant(value) {
-        let idx = this.constants.indexOf(value);
-        if (idx === -1) {
-            idx = this.constants.length;
-            this.constants.push(value);
-        }
-        return idx;
-    }
-    
-    getRegister() {
-        this.nextReg++;
-        return this.nextReg - 1;
-    }
+    return idx;
+  }
 }
 
 module.exports = { LuaCompiler };
